@@ -1,0 +1,21 @@
+{
+  "name": "terrapintunnel-data",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Scheduled data jobs that keep TerrapinTunnel's course catalog current",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "sync:daily": "node scripts/sync-daily.mjs",
+    "sync:daily:try": "node scripts/sync-daily.mjs --dry-run --fast --depts=CMSC",
+    "sync:planetterp": "node scripts/sync-planetterp-monthly.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.100.0",
+    "cheerio": "^1.2.0",
+    "dotenv": "^17.3.1"
+  }
+}
