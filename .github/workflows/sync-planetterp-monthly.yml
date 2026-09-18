@@ -1,0 +1,33 @@
+name: PlanetTerp Monthly Sync
+
+# Course GPAs and professor ratings from the PlanetTerp API (~30 min, one
+# request every ~4 s). Runs after the day's Testudo sync has finished.
+
+on:
+  schedule:
+    - cron: '0 14 1 * *'   # 1st of the month, 14:00 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: sync-planetterp
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run PlanetTerp sync
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/sync-planetterp-monthly.mjs

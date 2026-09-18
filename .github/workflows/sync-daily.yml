@@ -1,0 +1,54 @@
+name: Daily Sync
+
+# One slow Testudo refresh per day. The job spreads ~500 requests per term
+# over ~5 hours (see scripts/sync-daily.mjs), starting in the small hours of
+# US Eastern time so it runs while Testudo is quietest.
+
+on:
+  schedule:
+    - cron: '17 6 * * *'   # 06:17 UTC = 2:17am EDT / 1:17am EST, plus up to 20 min jitter
+  workflow_dispatch:
+    inputs:
+      terms:
+        description: 'Term ids in order, e.g. 202608,202701,202612 (blank = DAILY_TERM_IDS)'
+        required: false
+        default: ''
+      target_hours:
+        description: 'Spread the requests over this many hours'
+        required: false
+        default: '5'
+
+concurrency:
+  group: sync-daily
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355   # GitHub's hard cap is 360; the script stops requesting at 5.6 h
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm test
+
+      - name: Run daily sync
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SYNC_TARGET_HOURS: ${{ inputs.target_hours || '5' }}
+          SYNC_HARD_STOP_HOURS: '5.6'
+          SYNC_START_JITTER_MIN: ${{ github.event_name == 'schedule' && '20' || '0' }}
+          TERMS: ${{ inputs.terms }}
+        run: |
+          if [ -n "$TERMS" ]; then
+            node scripts/sync-daily.mjs --terms="$TERMS"
+          else
+            node scripts/sync-daily.mjs
+          fi
