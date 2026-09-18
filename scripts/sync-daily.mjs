@@ -44,7 +44,7 @@ import dotenv from 'dotenv'
 import { DAILY_TERM_IDS, TERMS, resolveTerms } from './terms.mjs'
 import { BASE, TestudoClient } from './lib/http.mjs'
 import { Pacer, sleep } from './lib/pacer.mjs'
-import { mergeSemesters, parseDepartmentCourses, parseDepartments, parseSections } from './lib/parse.mjs'
+import { coursesWithSections, mergeSemesters, parseDepartmentCourses, parseDepartments, parseSections } from './lib/parse.mjs'
 
 dotenv.config({ path: '.env.local' })
 
@@ -277,7 +277,8 @@ async function main() {
             }
             termCourses += courses.length
 
-            const chunks = chunkIds(courses.map((c) => c.id))
+            const scheduled = coursesWithSections(deptHtml)
+            const chunks = chunkIds(courses.map((c) => c.id).filter((id) => scheduled.has(id)))
             let deptSections = 0
             for (let c = 0; c < chunks.length && deptRequests < MAX_REQUESTS_PER_DEPT; c++) {
               try {
@@ -288,11 +289,10 @@ async function main() {
                 const byCourse = parseSections(html, termId)
                 const missing = chunks[c].filter((id) => !byCourse.has(id))
                 if (missing.length) {
-                  // Normal for a few listings with nothing scheduled (thesis
-                  // research, e.g. ENGL699). Every course missing at once
-                  // would mean the markup changed — watch the summary count.
+                  // Only courses with a "Show Sections" link are requested, so
+                  // a missing block is unexpected — possibly a markup change.
                   stats.missingCourses += missing.length
-                  console.log(`   ·  ${dept}: no sections listed for ${missing.join(', ')}`)
+                  console.warn(`   ⚠️  ${dept}: no sections block for ${missing.join(', ')}`)
                 }
                 const rows = [...byCourse.values()].flat().map((s) => ({
                   ...s,
@@ -359,7 +359,7 @@ async function main() {
   console.log(`   Requests to Testudo:  ${client.requests}`)
   console.log(`   Failed departments:   ${stats.failedDepts.length}${stats.failedDepts.length ? ` (${stats.failedDepts.slice(0, 15).join(', ')})` : ''}`)
   console.log(`   Failed section reqs:  ${stats.failedChunks}`)
-  console.log(`   Courses w/o sections: ${stats.missingCourses}`)
+  console.log(`   Missing section blocks: ${stats.missingCourses}`)
   console.log(`   Elapsed:              ${fmt(elapsed)}`)
 
   if (abortReason) {

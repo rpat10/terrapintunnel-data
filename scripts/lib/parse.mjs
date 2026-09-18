@@ -154,6 +154,21 @@ export function parseDepartmentCourses(html) {
   return courses
 }
 
+// Course ids the department page offers a "Show Sections" link for. Listings
+// without one (thesis research, independent study: CMSC799, ENGL699) have
+// nothing scheduled, and the sections endpoint returns no block for them.
+export function coursesWithSections(html) {
+  const $ = cheerio.load(html)
+  const ids = new Set()
+  $('.course').each((_, block) => {
+    if ($(block).find('a.toggle-sections-link').length) {
+      const id = $(block).find('.course-id').first().text().trim()
+      if (id) ids.add(id)
+    }
+  })
+  return ids
+}
+
 // ── Sections ────────────────────────────────────────────────────────────────
 // Meeting-format vocabulary matches search_courses(): async is start_time
 // 'ASYNC'; synchronous online is room 'ONLINE'; anything else is in person.

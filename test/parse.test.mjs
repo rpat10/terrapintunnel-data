@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import {
-  labelToTermId, mergeSemesters, parseDepartmentCourses, parseDepartments,
+  coursesWithSections, labelToTermId, mergeSemesters, parseDepartmentCourses, parseDepartments,
   parseMetaAndDescription, parseSections, sectionType,
 } from '../scripts/lib/parse.mjs'
 import { resolveTerms } from '../scripts/terms.mjs'
@@ -25,6 +25,14 @@ test('course blocks parse into courses rows', () => {
 
   const withPrereq = courses.find((c) => c.id !== 'CMSC131')
   assert.ok(withPrereq.prerequisites, 'a course with a Prerequisite: line gets one')
+})
+
+test('only courses with a Show Sections link are asked for sections', () => {
+  const html = fixture('dept-CMSC-202701.html')
+  assert.deepEqual([...coursesWithSections(html)].sort(), ['CMSC125', 'CMSC131'])
+  // A thesis-research listing has no link and nothing scheduled.
+  const noLink = html.replace('<a href="/soc/202701/CMSC/CMSC125" class="toggle-sections-link">', '<a>')
+  assert.deepEqual([...coursesWithSections(noLink)], ['CMSC131'])
 })
 
 test('sections parse from the batched sections endpoint', () => {
