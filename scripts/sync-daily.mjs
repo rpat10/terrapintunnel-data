@@ -19,8 +19,8 @@
 // every-30-minutes job made in 20 minutes.
 //
 // Never deletes. A section Testudo stops listing (cancelled) is reported, not
-// removed: deleting a section cascades into section_snapshots, which cannot
-// be re-scraped, and saved schedules still reference section ids.
+// removed: saved schedules reference section ids with no foreign key, so a
+// deleted section would silently drop out of someone's schedule.
 //
 // Usage:
 //   node scripts/sync-daily.mjs                       daily terms (the cron job)

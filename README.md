@@ -11,7 +11,8 @@ Supabase database with the service-role key.
 
 The website no longer has live seat updates, watchlists, or seat-history graphs,
 so the old every-30-minutes scrape, the watchlist job, and the daily
-`section_snapshots` job are gone.
+seat-snapshot job are gone. The `section_snapshots` table itself was dropped on
+2026-09-19.
 
 ## The daily sync
 
@@ -52,9 +53,10 @@ pages in 20 minutes, every 30 minutes.
 ### It never deletes
 
 A section Testudo stops listing (cancelled or renumbered) is **reported** at the
-end of the term, not removed. Deleting a section cascades into
-`section_snapshots`, which cannot be re-scraped, and saved schedules still
-reference section ids.
+end of the term, not removed. Saved schedules reference section ids with no
+foreign key, so a deleted section silently drops out of someone's schedule.
+Clean stale sections up deliberately, after checking that none of them is saved
+in a schedule.
 
 ## Terms
 
